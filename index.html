@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cardinal Forecast</title>
+  <link rel="icon" href="cardinal-logo.png" type="image/png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <section id="auth-cover" class="auth-cover" hidden>
+    <div class="auth-card panel">
+      <img src="cardinal-logo.png" alt="Cardinal logo" width="76" height="76" />
+      <div class="eyebrow">CARDINAL DISTRIBUTING</div>
+      <h1>Forecast Cloud</h1>
+      <p>Sign into the same account from work, home, Windows, Mac, or mobile to access synchronized inventory, sales history, and supplier settings.</p>
+      <form id="auth-form">
+        <label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="username" required placeholder="you@company.com" />
+        <label for="auth-password">Password</label><input id="auth-password" type="password" minlength="8" autocomplete="current-password" required placeholder="Password" />
+        <button id="auth-submit" class="button button-primary" type="submit">Sign in</button>
+      </form>
+      <button id="auth-create" type="button" class="button button-outline">Create account</button>
+      <div id="auth-error" role="status" aria-live="polite"></div>
+      <p class="auth-small">Private data is stored in your Supabase account, not in the public GitHub repository.</p>
+    </div>
+  </section>
+  <div id="app-shell" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <img src="cardinal-logo.png" alt="Cardinal Distributing logo" class="brand-logo" />
+      <div class="brand-copy"><strong>CARDINAL</strong><span>DISTRIBUTING <span class="separator">/</span> FORECAST</span></div>
+    </div>
+    <div class="topbar-right"><span class="desktop-pill">CLOUD SYNC</span><span id="today-label" class="today-label">—</span></div>
+  </header>
+  <div class="shell">
+    <aside class="nav">
+      <div class="nav-label">WORKSPACE</div>
+      <button class="nav-link selected" id="nav-forecast"><span class="nav-glyph">▤</span> Forecast overview</button>
+      <button class="nav-link" id="nav-slow"><span class="nav-glyph">◴</span> Slow movers</button>
+      <div class="nav-label section-spaced">DATA</div>
+      <button class="nav-link" id="nav-inventory"><span class="nav-glyph">↥</span> Import inventory</button>
+      <button class="nav-link" id="nav-sales"><span class="nav-glyph">↥</span> Import sales</button>
+      <button class="nav-link" id="nav-history"><span class="nav-glyph">▦</span> Import history</button>
+      <div class="nav-label section-spaced">ACCOUNT</div>
+      <div class="nav-account"><span id="account-email"></span><button id="sign-out" class="button button-outline" type="button">Sign out</button></div>
+      <button class="nav-link" id="export-backup"><span class="nav-glyph">↓</span> Download backup</button>
+      <button class="nav-link" id="import-backup"><span class="nav-glyph">↥</span> Restore backup</button>
+      <div class="nav-bottom"><span class="small-status-dot"></span><span>Private account sync</span><button class="nav-info" data-help="Your data is synchronized through Supabase. Sign into the same account on another device to view the same inventory, sales history, and settings.">ⓘ</button></div>
+    </aside>
+    <main class="workspace">
+      <div class="page-heading">
+        <div><div class="eyebrow">PURCHASING &amp; INVENTORY</div><h1 id="page-title">Forecast dashboard</h1><p id="horizon-label">Current week + next four full weeks</p></div>
+        <div class="heading-actions"><button id="refresh" class="button button-primary"><span>↻</span> Refresh</button></div>
+      </div>
+      <div id="forecast-view" class="forecast-view">
+      <section class="filter-bar panel">
+        <div class="filter-item"><label for="status-filter">PRODUCT STATUS</label><select id="status-filter"><option value="All eligible">All eligible</option><option value="ACTIVE">Active</option><option value="SPECIAL ORDER">Special Order</option><option value="SEASONAL">Seasonal</option></select></div>
+        <div class="filter-item short-field"><div class="label-inline"><label for="safety">SAFETY %</label><button class="info" data-help="Safety stock increases the suggested order quantity by this percentage of the projected future demand. It does not change the sales forecast itself.">ⓘ</button></div><input id="safety" type="number" value="15" min="0" max="100" step="1" /></div>
+        <div class="filter-item short-field"><div class="label-inline"><label for="lead-days">LEAD DAYS</label><button class="info" data-help="Supplier lead time in calendar days. The order-by date is the consolidated replenishment trigger minus this many days. Save separately for each supplier.">ⓘ</button></div><div class="field-with-btn"><input id="lead-days" type="number" min="0" max="120" placeholder="—" /><button id="save-lead" class="button button-ghost" title="Save supplier lead days">Save</button></div></div>
+        <div class="filter-spacer"></div><button id="export" class="button button-outline">↓ Export CSV</button>
+      </section>
+      <section class="summary-grid" aria-label="Supplier overview">
+        <div class="stat panel"><div class="stat-label">SELECTED SUPPLIER</div><div class="stat-value stat-supplier" id="stat-supplier">—</div><div class="stat-detail" id="stat-skus">Select a supplier</div></div>
+        <div class="stat panel"><div class="stat-label-inline"><span>FUTURE DEMAND</span><button class="info" data-help="Physical cases or individual kegs forecast to sell over the remaining current week plus the next four full weeks.">ⓘ</button></div><div class="stat-value" id="stat-demand">—</div><div class="stat-detail">Cases / kegs</div></div>
+        <div class="stat panel"><div class="stat-label-inline"><span>SUGGESTED NEXT ORDER</span><button class="info" data-help="Projected sales plus safety stock, minus currently available inventory and reported on-order quantities. The value is a planning estimate, not an automatically placed purchase order.">ⓘ</button></div><div class="stat-value" id="stat-order">—</div><div class="stat-detail">Physical units</div></div>
+        <div class="stat panel"><div class="stat-label-inline"><span>INVENTORY HEALTH</span><button class="info" data-help="Active products below 15 days on hand are low; above 30 are excess. Seasonal and Special Order products are excluded. Supplier risk is based on the percentage of projected cases from red products.">ⓘ</button></div><div class="stat-value health-compact" id="stat-risk">—</div><div class="stat-detail" id="stat-risk-detail">Target: 21 selling days</div></div>
+      </section>
+      <div id="dashboard-columns" class="dashboard-columns">
+        <section class="panel suppliers-panel">
+          <div class="card-heading"><h2>Suppliers</h2><button class="info" data-help="Suppliers are ranked by physical cases and individual kegs sold during the last 12 weeks. A supplier stays green when red items account for less than 10% of projected active-product demand.">ⓘ</button></div>
+          <div class="supplier-head"><span>SUPPLIER</span><span>12W SOLD</span><span>RISK</span><span>ORDER BY</span></div>
+          <div id="supplier-list" class="supplier-list"><div class="loading-text">Loading suppliers…</div></div>
+        </section>
+        <div class="right-column">
+          <section class="panel products-panel">
+            <div class="card-heading product-card-heading"><div class="inline-heading"><h2>Product forecasts</h2><button class="info" data-help="W0 is remaining demand for the current week. W1–W4 are the next four full weeks. Month is W1–W4 combined; Future is W0–W4 combined. Order subtracts available and incoming inventory.">ⓘ</button></div><div class="product-tools"><span id="product-count" class="count-label">— products</span><input id="product-search" type="search" placeholder="Search products or IDs" aria-label="Search products" /></div></div>
+            <div class="table-scroll" id="product-scroll"><table id="product-table"><thead><tr><th class="name-column">PRODUCT</th><th>AVAILABLE</th><th>INCOMING</th><th>ORDER</th><th>STATUS</th><th>DOH</th><th>HEALTH</th><th>12W SOLD</th><th>W0</th><th>W1</th><th>W2</th><th>W3</th><th>W4</th><th>MONTH</th><th>FUTURE</th></tr></thead><tbody id="product-body"><tr><td class="empty-cell" colspan="15">Select a supplier to view products.</td></tr></tbody></table></div>
+            <div class="table-footer"><span id="product-foot">Select a product for its individual trend and quantities.</span><span class="table-hint">Scroll horizontally for additional columns →</span></div>
+          </section>
+          <section class="panel trend-panel">
+            <div class="card-heading trend-heading"><div class="inline-heading"><h2>Weekly sales trends</h2><button class="info" data-help="Historical sales are shown as step lines spanning the full week. Reported weeks with zero sales reach zero; weeks outside the report remain blank. Dashed green is the projected weekly total. Toggle years using the legend.">ⓘ</button></div><div id="trend-product" class="trend-product-name">Select a product</div></div>
+            <div class="trend-meta" id="trend-meta">Compare historical actuals with the current forecast.</div>
+            <div class="legend" id="legend">
+              <label><input type="checkbox" data-series="prior2" checked /><i style="--swatch:#8b98b0"></i> 2 years ago</label>
+              <label><input type="checkbox" data-series="prior" checked /><i style="--swatch:#d98f3e"></i> Last year</label>
+              <label><input type="checkbox" data-series="current" checked /><i style="--swatch:#367cbb"></i> Current actuals</label>
+              <label><input type="checkbox" data-series="forecast" checked /><i class="dashed" style="--swatch:#188764"></i> Projected</label>
+            </div>
+            <div id="chart-container" class="chart-container"><svg id="trend-svg" role="img" aria-label="Historical and projected weekly sales trend" viewBox="0 0 980 255" preserveAspectRatio="none"></svg><div id="chart-tooltip" class="chart-tooltip" hidden></div></div>
+            <div class="trend-bottom"><span id="trend-footnote">Select any product in the table to see its model.</span><span id="product-quantities"></span></div>
+          </section>
+          <section class="panel inventory-panel">
+            <div class="card-heading inventory-heading"><div class="inline-heading"><h2>Inventory outlook</h2><button class="info" data-help="The solid green line begins at available cases/kegs and decreases by forecast daily sales (Monday–Saturday). Dated Next PO quantities add inventory on their expected arrival dates. The dotted red line shows the same demand with no inbound deliveries. Untimed on-order quantities are NOT assumed to arrive. Inventory cannot fall below zero; unmet demand is reported separately.">ⓘ</button></div><span class="inventory-headline" id="inventory-headline">Select a product</span></div>
+            <div id="inventory-chart-container" class="chart-container inventory-chart"><svg id="inventory-svg" role="img" aria-label="Projected available inventory with shipment arrivals and expected sales" viewBox="0 0 980 245" preserveAspectRatio="none"></svg><div id="inventory-tooltip" class="chart-tooltip" hidden></div></div>
+            <div class="inventory-footer"><span id="inventory-note">Shipment dates and quantities come from the latest inventory snapshot.</span><span id="inventory-unconfirmed"></span></div>
+          </section>
+          <section class="order-strip"><div class="inline-heading"><h3>Order planning</h3><button class="info" data-help="A supplier gets a consolidated ordering recommendation when multiple active products representing at least 40% of projected supplier demand approach 21 days on hand. Valid incoming shipment dates are credited; lead time is needed for an actionable order-by date.">ⓘ</button></div><div id="order-insight">Select a supplier to see an order planning window.</div></section>
+        </div>
+      </div>
+      </div><!-- /forecast-view -->
+      <div id="slow-view" class="slow-view" hidden>
+        <section class="slow-intro panel">
+          <div class="card-heading"><div class="inline-heading"><h2>Slow-moving inventory</h2><button class="info" data-help="Uses actual physical cases/kegs sold during the last 12 COMPLETE weeks. Includes zero-sales products from your latest inventory—even products skipped by the demand forecaster. Suppliers without enough recent sales coverage are excluded so missing data isn't mistaken for zero. Bottom 10% is within the selected supplier/status/stock scope.">ⓘ</button></div><span id="slow-summary" class="count-label">—</span></div>
+          <div class="slow-controls">
+            <label>SUPPLIER <select id="slow-supplier"><option value="">All suppliers</option></select></label>
+            <label>STATUS <select id="slow-status"><option value="ACTIVE">Active only</option><option value="All eligible">All eligible</option><option value="SPECIAL ORDER">Special Order</option><option value="SEASONAL">Seasonal</option></select></label>
+            <label>GROUP <select id="slow-mode"><option value="bottom">Bottom 10% of products</option><option value="dormant">No sales for 90+ days</option><option value="monthly">1 or fewer per month</option></select></label>
+            <label class="slow-check"><input id="slow-in-stock" type="checkbox" checked /> In stock only</label>
+            <input id="slow-search" type="search" placeholder="Search products or suppliers" aria-label="Search slow-moving products" />
+          </div>
+          <div class="slow-stats"><div><strong id="slow-eligible">—</strong><span>Products compared</span></div><div><strong id="slow-zero">—</strong><span>Zero sales (12 weeks)</span></div><div><strong id="slow-under-one">—</strong><span>≤1 unit / month</span></div><div><strong id="slow-excluded">—</strong><span>Excluded: missing coverage</span></div></div>
+          <div class="table-scroll slow-table-scroll"><table class="slow-table"><thead><tr><th>PRODUCT</th><th>SUPPLIER</th><th>STATUS</th><th>12W SOLD</th><th>AVG / MONTH</th><th>AVAILABLE</th><th>LAST SALE</th><th>DAYS SINCE</th><th>REASON</th></tr></thead><tbody id="slow-body"><tr><td colspan="9" class="empty-cell">Open Slow movers to view eligible products.</td></tr></tbody></table></div>
+          <div class="slow-foot">Quantities are physical cases or individual kegs. Actual sales, not case equivalents. Approximate monthly rate = 12-week units ÷ 3.</div>
+        </section>
+      </div>
+      <footer class="status-footer"><span class="dot-online"></span><span id="footer-status">Ready · Private cloud sync</span><span id="report-updated"></span></footer>
+    </main>
+  </div>
+  </div><!-- /app-shell -->
+  <div id="help-popover" class="help-popover" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <div id="history-modal" class="modal-backdrop" hidden><div class="modal panel"><div class="modal-title"><h2>Import history</h2><button id="modal-close" class="close-btn" aria-label="Close">×</button></div><p>Your most recent inventory and sales report imports, by supplier.</p><div id="history-content" class="history-content"></div></div></div>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="engine.js"></script>
+  <script src="parser.js"></script>
+  <script src="bridge.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

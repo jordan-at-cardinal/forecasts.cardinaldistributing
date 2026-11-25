@@ -1,0 +1,15 @@
+# Never commit private company data, database dumps, or report exports.
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!tsconfig.json
+*.zip
+*.env
+*.log
+__pycache__/
+.DS_Store
